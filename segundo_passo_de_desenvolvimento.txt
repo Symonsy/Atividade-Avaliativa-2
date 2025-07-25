@@ -1,0 +1,153 @@
+- Persistência de dados em API REST
+Dando prosseguimento à construção de nossa API REST, vamos conectá-la ao banco de dados SQLite (o banco de dados mais utilizado no mundo!). Para isso, utilize a sua API REST desenvolvida desse projeto e, utilizando o SQLModel (https://sqlmodel.tiangolo.com/) conecte-a ao banco de dados SQLite (que é apenas um arquivo no seu projeto). Para testar sua API, você pode utilizar aplicativos como o Insomnia, o Postman, ou o Yaak. E para acessar sua base de dados, você pode utilizar aplicativos como o DBeaver, ou extensões para o VS Code, como o SQLite Viewer (https://marketplace.visualstudio.com/items?itemName=qwtel.sqlite-viewer).
+
+Basta configurar a conexão com o banco de dados, e adicionar as funcionalidades de acesso ao BD. Para facilitar o seu trabalho, há um tutorial de exemplo anexado nesta questão.
+
+---
+
+Tutorial: Construindo uma API REST Simples com FastAPI e SQLModel
+
+Este tutorial mostra, passo a passo, como construir uma API REST para gerenciar usuários usando as versões mais recentes do FastAPI e SQLModel, totalmente em português e mantendo a complexidade ao mínimo para facilitar o aprendizado^1^3.
+
+- Pré-requisitos:
+Python 3.8+
+Familiaridade com terminal/linha de comando
+
+1. Instalando as Dependências
+
+No terminal, execute: pip install "fastapi[standard]" sqlmodel
+
+2. Estrutura do Projeto
+
+Crie um arquivo chamado main.py.
+
+3. Modelo de Usuário com SQLModel
+
+No main.py:
+
+from typing import Optional
+from sqlmodel import Field, Session, SQLModel, create_engine, select
+from fastapi import FastAPI, HTTPException
+class User(SQLModel, table=True):
+ id: Optional[int] = Field(default=None, primary_key=True)
+ name: str
+ email: str
+ age: Optional[int] = None
+ phone: Optional[str] = None
+sqlite_file_name = "database.db"
+sqlite_url = f"sqlite:///{sqlite_file_name}"
+engine = create_engine(sqlite_url, echo=True)
+
+4. Inicializando o Banco de Dados
+
+def create_db_and_tables():
+ SQLModel.metadata.create_all(engine)
+
+5. FastAPI App e Evento de Inicialização
+
+app = FastAPI()
+@app.on_event("startup")
+def on_startup():
+ create_db_and_tables()
+
+6. Endpoints da API
+
+a) Listar Todos os Usuários
+
+@app.get("/users/")
+def read_users():
+ with Session(engine) as session:
+ users = session.exec(select(User)).all()
+ return users
+
+Método: GET
+Descrição: Retorna uma lista com todos os usuários cadastrados.
+
+b) Buscar Usuário por Email
+
+@app.get("/users/by-email/{email}")
+def get_user_by_email(email: str):
+ with Session(engine) as session:
+ statement = select(User).where(User.email == email)
+ user = session.exec(statement).first()
+ if not user:
+ raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+ return user
+
+Método: GET
+Descrição: Busca um usuário específico pelo email.
+
+c) Registrar Novo Usuário
+
+@app.post("/users/", status_code=201)
+def create_user(user: User):
+ with Session(engine) as session:
+ # Opcional: verificar se e-mail já existe
+ if session.exec(select(User).where(User.email == user.email)).first():
+ raise HTTPException(status_code=400, detail="Email já cadastrado.")
+ session.add(user)
+ session.commit()
+ session.refresh(user)
+ return user
+
+Método: POST
+Descrição: Registra um novo usuário. Não permite e-mails duplicados.
+
+d) Editar Informações de um Usuário (por email)
+
+from fastapi import Body
+@app.put("/users/{email}")
+def update_user(email: str, updated_data: dict = Body(...)):
+ with Session(engine) as session:
+ statement = select(User).where(User.email == email)
+ user = session.exec(statement).first()
+ if not user:
+ raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+ for key, value in updated_data.items():
+ setattr(user, key, value)
+ session.add(user)
+ session.commit()
+ session.refresh(user)
+ return user
+
+Método: PUT
+Descrição: Atualiza as informações de um usuário buscado pelo e-mail.
+
+e) Remover Usuário (por email)
+
+@app.delete("/users/{email}")
+def delete_user(email: str):
+ with Session(engine) as session:
+ statement = select(User).where(User.email == email)
+ user = session.exec(statement).first()
+ if not user:
+ raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+ session.delete(user)
+ session.commit()
+ return {"detail": "Usuário removido com sucesso."}
+
+Método: DELETE
+Descrição: Remove um usuário com base no e-mail.
+
+7. Rodando a API
+
+No terminal, execute:
+fastapi dev main.py
+
+Acesse a documentação interativa automática no navegador: http://localhost:8000/docs
+
+- Resumo dos Endpoints
+
+Verbo HTTP | Endpoint | Ação
+GET | /users/ | Lista todos os usuários
+GET | /users/by-email/{email} | Busca usuário por email
+POST | /users/ | Adiciona novo usuário
+PUT | /users/{email} | Atualiza dados de usuário pelo email
+DELETE | /users/{email} | Remove usuário pelo email
+
+- Observações Importantes
+
+O banco de dados utilizado é SQLite, já criado localmente.
+FastAPI e SQLModel fornecem validação automática dos dados de entrada^4.
+Toda a configuração e endpoints acima estão de acordo com as versões mais recentes até julho de 2025^1^3.
+Essa é uma base simples e flexível para começar a criar APIs REST profissionais em Python!

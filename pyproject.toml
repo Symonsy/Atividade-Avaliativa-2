@@ -1,0 +1,23 @@
+[tool]
+name = "fastapi-projects-api"
+version = "0.1.0"
+description = "API para gerenciamento de projetos utilizando FastAPI e Pydantic."
+authors = ["Seu Nome <seu.email@example.com>"]
+license = "MIT"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+fastapi = "^0.95.0"
+uvicorn = "^0.22.0"
+pydantic = "^1.10.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.0.0"
+httpx = "^0.23.0"
+
+[tool.poetry.scripts]
+start = "uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
